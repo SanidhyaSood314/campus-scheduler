@@ -104,13 +104,42 @@ http://127.0.0.1:5000
 * **Backend:** Render
 * **Frontend:** Vercel
 
-Update API URL in frontend:
+---
 
-```js
-const API = "https://your-backend-url.onrender.com";
-```
+
+## 🌐 Live Demo
+
+* **Frontend (UI):** https://your-frontend-url.vercel.app
+* **Backend API:** https://your-backend-url.onrender.com
 
 ---
+
+## 📡 API Endpoints (Quick Access)
+
+* Get all bookings:
+  `GET /bookings`
+
+* Create booking:
+  `POST /book`
+
+* Admin login:
+  `POST /admin/login`
+
+* Approve booking:
+  `PUT /approve/<id>`
+
+---
+
+## 🧪 Quick Test
+
+1. Open the frontend link
+2. Create a booking
+3. Go to “Pending” tab
+4. Login as admin
+5. Approve the booking
+
+---
+
 
 ## 🔑 Admin Access
 
