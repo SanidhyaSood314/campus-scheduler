@@ -1,0 +1,76 @@
+[
+  {"name":"A1","building":"Civil Department","floor":"Ground Floor"},
+  {"name":"A2","building":"Civil Department","floor":"Ground Floor"},
+  {"name":"A3","building":"Civil Department","floor":"1st Floor"},
+  {"name":"A4","building":"Civil Department","floor":"1st Floor"},
+  {"name":"A5","building":"Civil Department","floor":"2nd Floor"},
+  {"name":"A6","building":"Civil Department","floor":"2nd Floor"},
+
+  {"name":"B1","building":"Mechanical Block","floor":"Ground Floor"},
+  {"name":"B2","building":"Mechanical Block","floor":"Ground Floor"},
+  {"name":"B3","building":"Mechanical Block","floor":"1st Floor"},
+  {"name":"B4","building":"Mechanical Block","floor":"1st Floor"},
+  {"name":"B5","building":"Mechanical Block","floor":"2nd Floor"},
+  {"name":"B6","building":"Mechanical Block","floor":"2nd Floor"},
+
+  {"name":"C1","building":"Electrical Block","floor":"Ground Floor"},
+  {"name":"C2","building":"Electrical Block","floor":"Ground Floor"},
+  {"name":"C3","building":"Electrical Block","floor":"1st Floor"},
+  {"name":"C4","building":"Electrical Block","floor":"1st Floor"},
+  {"name":"C5","building":"Electrical Block","floor":"2nd Floor"},
+  {"name":"C6","building":"Electrical Block","floor":"2nd Floor"},
+
+  {"name":"CC-101","building":"Computer Centre","floor":"Ground Floor"},
+  {"name":"CC-102","building":"Computer Centre","floor":"Ground Floor"},
+  {"name":"CC-201","building":"Computer Centre","floor":"1st Floor"},
+  {"name":"CC-202","building":"Computer Centre","floor":"1st Floor"},
+  {"name":"CC-301","building":"Computer Centre","floor":"2nd Floor"},
+  {"name":"CC-302","building":"Computer Centre","floor":"2nd Floor"},
+  {"name":"CC-401","building":"Computer Centre","floor":"3rd Floor"},
+  {"name":"CC-402","building":"Computer Centre","floor":"3rd Floor"},
+
+  {"name":"ME-101","building":"Mechanical Department","floor":"Ground Floor"},
+  {"name":"ME-102","building":"Mechanical Department","floor":"Ground Floor"},
+  {"name":"ME-201","building":"Mechanical Department","floor":"1st Floor"},
+  {"name":"ME-202","building":"Mechanical Department","floor":"1st Floor"},
+  {"name":"ME-301","building":"Mechanical Department","floor":"2nd Floor"},
+  {"name":"ME-302","building":"Mechanical Department","floor":"2nd Floor"},
+
+  {"name":"CE-101","building":"Civil Engineering","floor":"Ground Floor"},
+  {"name":"CE-102","building":"Civil Engineering","floor":"Ground Floor"},
+  {"name":"CE-201","building":"Civil Engineering","floor":"1st Floor"},
+  {"name":"CE-202","building":"Civil Engineering","floor":"1st Floor"},
+  {"name":"CE-301","building":"Civil Engineering","floor":"2nd Floor"},
+  {"name":"CE-302","building":"Civil Engineering","floor":"2nd Floor"},
+
+  {"name":"EE-101","building":"Electrical Engineering","floor":"Ground Floor"},
+  {"name":"EE-102","building":"Electrical Engineering","floor":"Ground Floor"},
+  {"name":"EE-201","building":"Electrical Engineering","floor":"1st Floor"},
+  {"name":"EE-202","building":"Electrical Engineering","floor":"1st Floor"},
+  {"name":"EE-301","building":"Electrical Engineering","floor":"2nd Floor"},
+  {"name":"EE-302","building":"Electrical Engineering","floor":"2nd Floor"},
+
+  {"name":"LT-1","building":"Lecture Theatre Complex","floor":"Ground Floor"},
+  {"name":"LT-2","building":"Lecture Theatre Complex","floor":"Ground Floor"},
+  {"name":"LT-3","building":"Lecture Theatre Complex","floor":"1st Floor"},
+  {"name":"LT-4","building":"Lecture Theatre Complex","floor":"1st Floor"},
+  {"name":"LT-5","building":"Lecture Theatre Complex","floor":"2nd Floor"},
+  {"name":"LT-6","building":"Lecture Theatre Complex","floor":"2nd Floor"},
+
+  {"name":"Seminar Hall 1","building":"Admin Block","floor":"1st Floor"},
+  {"name":"Seminar Hall 2","building":"Admin Block","floor":"2nd Floor"},
+  {"name":"Conference Room 1","building":"Admin Block","floor":"Ground Floor"},
+  {"name":"Conference Room 2","building":"Admin Block","floor":"1st Floor"},
+
+  {"name":"Auditorium","building":"Main Block","floor":"Ground Floor"},
+  {"name":"Open Air Theatre","building":"Cultural Complex","floor":"Ground Level"},
+
+  {"name":"Lab 1","building":"Physics Block","floor":"Ground Floor"},
+  {"name":"Lab 2","building":"Physics Block","floor":"1st Floor"},
+  {"name":"Lab 3","building":"Chemistry Block","floor":"Ground Floor"},
+  {"name":"Lab 4","building":"Chemistry Block","floor":"1st Floor"},
+
+  {"name":"Innovation Lab","building":"Startup Incubation Centre","floor":"1st Floor"},
+  {"name":"Robotics Lab","building":"Startup Incubation Centre","floor":"2nd Floor"},
+  {"name":"AI Lab","building":"Computer Centre","floor":"3rd Floor"}
+]

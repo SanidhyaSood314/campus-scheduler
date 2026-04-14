@@ -1,0 +1,1552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Campus Scheduler — Mission Control</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:         #070d1a;
+      --surface:    #0d1628;
+      --card:       #111f35;
+      --card-hover: #162843;
+      --border:     rgba(0,212,170,0.12);
+      --border-hi:  rgba(0,212,170,0.35);
+      --teal:       #00d4aa;
+      --teal-dim:   rgba(0,212,170,0.13);
+      --teal-glow:  rgba(0,212,170,0.35);
+      --indigo:     #6366f1;
+      --amber:      #f59e0b;
+      --red:        #ef4444;
+      --green:      #10b981;
+      --text-1:  #e8f4f1;
+      --text-2:  #8da8c0;
+      --text-3:  #4a6882;
+      --font-head: 'Syne', sans-serif;
+      --font-body: 'DM Sans', sans-serif;
+      --font-mono: 'DM Mono', monospace;
+      --radius:   14px;
+      --radius-sm: 8px;
+      --shadow:   0 8px 32px rgba(0,0,0,0.55);
+      --transition: all 0.22s cubic-bezier(0.4,0,0.2,1);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-body);
+      background: var(--bg);
+      color: var(--text-1);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── BG FX ──────────────────────────── */
+    .bg-grid {
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background-image:
+        linear-gradient(rgba(0,212,170,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,212,170,0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+    }
+    .bg-glow {
+      position: fixed; z-index: 0; pointer-events: none;
+      width: 700px; height: 700px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(0,212,170,0.055) 0%, transparent 70%);
+      top: -250px; left: -250px;
+    }
+    .bg-glow-2 {
+      position: fixed; z-index: 0; pointer-events: none;
+      width: 500px; height: 500px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(99,102,241,0.05) 0%, transparent 70%);
+      bottom: -150px; right: -150px;
+    }
+
+    /* ── HEADER ─────────────────────────── */
+    .header {
+      position: sticky; top: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 40px; height: 66px;
+      background: rgba(7,13,26,0.9);
+      backdrop-filter: blur(24px);
+      border-bottom: 1px solid var(--border);
+    }
+    .header-logo {
+      display: flex; align-items: center; gap: 12px; flex-shrink: 0;
+    }
+    .logo-icon {
+      width: 36px; height: 36px; border-radius: 10px;
+      background: linear-gradient(135deg, var(--teal), var(--indigo));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+      box-shadow: 0 0 20px var(--teal-glow);
+    }
+    .logo-text {
+      font-family: var(--font-head);
+      font-size: 18px; font-weight: 700; color: var(--text-1);
+    }
+    .logo-text span { color: var(--teal); }
+
+    /* TAB NAV */
+    .tab-nav {
+      display: flex; align-items: center; gap: 2px;
+      flex: 1; justify-content: center;
+    }
+    .tab-btn {
+      position: relative;
+      font-family: var(--font-body);
+      font-size: 13px; font-weight: 500;
+      padding: 9px 20px;
+      border-radius: var(--radius-sm);
+      border: 1px solid transparent;
+      background: transparent; color: var(--text-3);
+      cursor: pointer; transition: var(--transition);
+      display: flex; align-items: center; gap: 7px;
+      white-space: nowrap;
+    }
+    .tab-btn:hover { color: var(--text-1); background: rgba(255,255,255,0.04); }
+    .tab-btn.active {
+      background: var(--teal-dim);
+      border-color: rgba(0,212,170,0.28);
+      color: var(--teal);
+    }
+    .tab-btn.active::after {
+      content: '';
+      position: absolute; bottom: -1px; left: 50%; transform: translateX(-50%);
+      width: 40%; height: 2px;
+      background: var(--teal);
+      border-radius: 2px 2px 0 0;
+    }
+    .tab-icon { font-size: 15px; }
+
+    .pending-badge {
+      background: var(--amber); color: #1a0500;
+      font-family: var(--font-mono); font-size: 10px; font-weight: 700;
+      padding: 1px 6px; border-radius: 10px; min-width: 18px; text-align: center;
+      display: none;
+    }
+    .pending-badge.show { display: inline-block; }
+
+    .admin-chip {
+      display: flex; align-items: center; gap: 7px;
+      font-family: var(--font-mono); font-size: 11px; color: var(--text-3);
+      flex-shrink: 0;
+    }
+    .status-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--text-3); transition: var(--transition);
+    }
+    .status-dot.online {
+      background: var(--teal); box-shadow: 0 0 8px var(--teal);
+      animation: blink 2s infinite;
+    }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.45} }
+
+    /* ── TAB PANELS ─────────────────────── */
+    .main { position: relative; z-index: 1; }
+    .tab-panel {
+      display: none;
+      min-height: calc(100vh - 66px);
+      padding: 44px clamp(20px, 5vw, 60px);
+      animation: tab-in 0.22s ease;
+    }
+    .tab-panel.active { display: block; }
+    @keyframes tab-in {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── COMMON TYPOGRAPHY ──────────────── */
+    .section-label {
+      font-family: var(--font-mono); font-size: 11px; font-weight: 500;
+      color: var(--teal); letter-spacing: 2px; text-transform: uppercase;
+      margin-bottom: 14px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .section-label::after {
+      content: ''; flex: 1; height: 1px;
+      background: linear-gradient(to right, var(--border-hi), transparent);
+    }
+    .panel-title {
+      font-family: var(--font-head);
+      font-size: 28px; font-weight: 800; margin-bottom: 8px;
+    }
+    .panel-sub {
+      font-size: 13px; color: var(--text-3); margin-bottom: 36px; line-height: 1.65;
+    }
+
+    /* ── FORM ELEMENTS ──────────────────── */
+    .form-group { margin-bottom: 16px; }
+    .form-label {
+      display: block; font-size: 11px; font-weight: 500;
+      color: var(--text-2); letter-spacing: 0.8px; margin-bottom: 7px;
+      text-transform: uppercase; font-family: var(--font-mono);
+    }
+    .form-input, .form-select {
+      width: 100%; padding: 11px 14px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); color: var(--text-1);
+      font-family: var(--font-body); font-size: 14px;
+      transition: var(--transition); outline: none; -webkit-appearance: none;
+    }
+    .form-input::placeholder { color: var(--text-3); }
+    .form-input:focus, .form-select:focus {
+      border-color: var(--teal); background: var(--card-hover);
+      box-shadow: 0 0 0 3px rgba(0,212,170,0.1);
+    }
+    .form-select option, .form-select optgroup { background: #111f35; color: var(--text-1); }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    input[type="date"], input[type="time"] { color-scheme: dark; }
+    .select-wrap { position: relative; }
+    .select-wrap::after {
+      content: '▾'; position: absolute; right: 13px; top: 50%;
+      transform: translateY(-50%);
+      color: var(--teal); font-size: 12px; pointer-events: none;
+    }
+
+    /* ── BUTTONS ────────────────────────── */
+    .btn {
+      font-family: var(--font-body); font-weight: 600; font-size: 14px;
+      padding: 12px 24px; border-radius: var(--radius-sm); border: none;
+      cursor: pointer; transition: var(--transition);
+      display: inline-flex; align-items: center; gap: 8px;
+    }
+    .btn-primary {
+      width: 100%;
+      background: linear-gradient(135deg, var(--teal) 0%, #00b894 100%);
+      color: #031810; justify-content: center; margin-top: 8px;
+    }
+    .btn-primary:hover { box-shadow: 0 6px 24px var(--teal-glow); transform: translateY(-1px); }
+    .btn-primary:active { transform: translateY(0); }
+    .btn-sm { padding: 6px 14px; font-size: 12px; border-radius: 6px; }
+    .btn-approve {
+      background: rgba(16,185,129,0.14); border: 1px solid rgba(16,185,129,0.3);
+      color: var(--green);
+    }
+    .btn-approve:hover { background: rgba(16,185,129,0.25); }
+    .btn-reject {
+      background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.25);
+      color: var(--red);
+    }
+    .btn-reject:hover { background: rgba(239,68,68,0.22); }
+    .btn-delete {
+      background: rgba(100,116,139,0.1); border: 1px solid rgba(100,116,139,0.2);
+      color: var(--text-3);
+    }
+    .btn-delete:hover { background: rgba(239,68,68,0.12); color: var(--red); border-color: rgba(239,68,68,0.3); }
+    .btn-edit {
+      background: rgba(99,102,241,0.1); border: 1px solid rgba(99,102,241,0.25);
+      color: var(--indigo);
+    }
+    .btn-edit:hover { background: rgba(99,102,241,0.2); }
+    .btn-ghost {
+      background: transparent; border: 1px solid var(--border);
+      color: var(--text-2); font-size: 13px; padding: 8px 16px;
+    }
+    .btn-ghost:hover { border-color: var(--border-hi); color: var(--text-1); }
+
+    /* ── STATS STRIP ────────────────────── */
+    .stats-strip {
+      display: grid; grid-template-columns: repeat(4,1fr);
+      gap: 12px; margin-bottom: 32px;
+    }
+    .stat-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 18px 22px;
+      transition: var(--transition); cursor: default;
+      position: relative; overflow: hidden;
+    }
+    .stat-card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    }
+    .stat-card.teal::before  { background: var(--teal); }
+    .stat-card.amber::before { background: var(--amber); }
+    .stat-card.green::before { background: var(--green); }
+    .stat-card.red::before   { background: var(--red); }
+    .stat-card:hover { border-color: var(--border-hi); transform: translateY(-1px); }
+    .stat-label {
+      font-family: var(--font-mono); font-size: 10px; color: var(--text-3);
+      letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 10px;
+    }
+    .stat-value {
+      font-family: var(--font-head); font-size: 32px; font-weight: 800; line-height: 1;
+    }
+    .stat-value.teal  { color: var(--teal); }
+    .stat-value.amber { color: var(--amber); }
+    .stat-value.green { color: var(--green); }
+    .stat-value.red   { color: var(--red); }
+
+    /* ── FILTER BAR ─────────────────────── */
+    .filter-bar {
+      display: flex; gap: 8px; align-items: center;
+      margin-bottom: 22px; flex-wrap: wrap;
+    }
+    .filter-chip {
+      font-family: var(--font-mono); font-size: 11px; padding: 6px 16px;
+      border-radius: 20px; border: 1px solid var(--border);
+      background: transparent; color: var(--text-3); cursor: pointer;
+      transition: var(--transition); letter-spacing: 0.5px;
+    }
+    .filter-chip:hover { border-color: var(--border-hi); color: var(--text-2); }
+    .filter-chip.active {
+      background: var(--teal-dim); border-color: rgba(0,212,170,0.4); color: var(--teal);
+    }
+    .filter-bar-end {
+      margin-left: auto; display: flex; gap: 8px; align-items: center;
+    }
+
+    /* ── BOOKING CARDS ──────────────────── */
+    .bookings-list { display: flex; flex-direction: column; gap: 12px; }
+
+    .booking-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 18px 22px 18px 28px;
+      transition: var(--transition);
+      animation: fade-up 0.28s ease forwards;
+      position: relative; overflow: hidden;
+    }
+    .booking-card::before {
+      content: ''; position: absolute; left: 0; top: 0; bottom: 0;
+      width: 4px; border-radius: 3px 0 0 3px;
+    }
+    .booking-card.status-Pending::before  { background: var(--amber); }
+    .booking-card.status-Approved::before { background: var(--green); }
+    .booking-card.status-Rejected::before { background: var(--red); }
+    .booking-card:hover {
+      border-color: var(--border-hi); background: var(--card-hover);
+      transform: translateY(-1px);
+    }
+    @keyframes fade-up {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .booking-top {
+      display: flex; justify-content: space-between; align-items: flex-start;
+      margin-bottom: 12px;
+    }
+    .booking-title {
+      font-family: var(--font-head); font-size: 15px; font-weight: 600;
+      color: var(--text-1); margin-bottom: 4px;
+    }
+    .booking-venue { font-family: var(--font-mono); font-size: 12px; color: var(--teal); }
+    .booking-top-right { display: flex; align-items: center; gap: 8px; }
+    .booking-id {
+      font-family: var(--font-mono); font-size: 10px; color: var(--text-3);
+    }
+    .status-badge {
+      font-family: var(--font-mono); font-size: 10px; font-weight: 500;
+      padding: 4px 10px; border-radius: 12px;
+      letter-spacing: 1px; text-transform: uppercase; flex-shrink: 0;
+    }
+    .badge-Pending  { background: rgba(245,158,11,0.14); color: var(--amber); border: 1px solid rgba(245,158,11,0.3); }
+    .badge-Approved { background: rgba(16,185,129,0.12); color: var(--green); border: 1px solid rgba(16,185,129,0.3); }
+    .badge-Rejected { background: rgba(239,68,68,0.1);   color: var(--red);   border: 1px solid rgba(239,68,68,0.25); }
+
+    .booking-meta {
+      display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 12px;
+    }
+    .meta-item {
+      display: flex; align-items: center; gap: 5px;
+      font-size: 12px; color: var(--text-3);
+    }
+    .booking-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    .empty-state {
+      text-align: center; padding: 64px 24px; color: var(--text-3);
+    }
+    .empty-state .empty-icon { font-size: 44px; margin-bottom: 14px; }
+    .empty-state p { font-size: 14px; line-height: 1.65; }
+
+    /* ── BOOK TAB LAYOUT ────────────────── */
+    .book-layout {
+      display: grid; grid-template-columns: 440px 1fr; gap: 36px; align-items: start;
+    }
+    .book-form-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 32px;
+    }
+    .book-info-col { display: flex; flex-direction: column; gap: 16px; }
+    .info-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 22px 26px;
+      transition: var(--transition);
+    }
+    .info-card:hover { border-color: var(--border-hi); }
+    .info-card-title {
+      font-family: var(--font-mono); font-size: 11px; color: var(--teal);
+      letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 12px;
+    }
+    .info-card-body { font-size: 13px; color: var(--text-2); line-height: 1.75; }
+    .venue-preview { display: flex; flex-direction: column; gap: 8px; }
+    .vp-row {
+      display: flex; align-items: center; gap: 10px; padding: 9px 14px;
+      background: rgba(0,212,170,0.05); border-radius: var(--radius-sm);
+      font-size: 13px; color: var(--text-2);
+    }
+    .vp-row .icon { font-size: 16px; }
+
+    /* ── ADMIN TAB LAYOUT ───────────────── */
+    .admin-layout {
+      display: grid; grid-template-columns: 320px 1fr; gap: 36px; align-items: start;
+    }
+    .admin-sidebar { display: flex; flex-direction: column; gap: 12px; }
+    .admin-info-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 16px;
+      background: rgba(0,212,170,0.04);
+      border: 1px solid var(--border); border-radius: var(--radius-sm);
+      font-size: 13px;
+    }
+    .admin-info-row .lbl {
+      color: var(--text-3); font-family: var(--font-mono); font-size: 11px;
+      text-transform: uppercase; letter-spacing: 1px;
+    }
+    .admin-info-row .val { color: var(--teal); font-weight: 600; font-family: var(--font-mono); }
+    .admin-login-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 34px;
+    }
+    .admin-icon {
+      width: 54px; height: 54px; border-radius: 14px;
+      background: linear-gradient(135deg, rgba(99,102,241,0.2), rgba(0,212,170,0.2));
+      border: 1px solid rgba(99,102,241,0.28);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px; margin-bottom: 20px;
+    }
+
+    .divider { height: 1px; background: var(--border); margin: 18px 0; }
+
+    /* ── MODAL ──────────────────────────── */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0; z-index: 200;
+      background: rgba(0,0,0,0.75); backdrop-filter: blur(8px);
+      align-items: center; justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 34px;
+      width: 100%; max-width: 500px;
+      box-shadow: 0 24px 60px rgba(0,0,0,0.6);
+      animation: modal-in 0.22s ease;
+      max-height: 92vh; overflow-y: auto;
+    }
+    @keyframes modal-in {
+      from { opacity: 0; transform: scale(0.95) translateY(-10px); }
+      to   { opacity: 1; transform: scale(1)    translateY(0); }
+    }
+    .modal-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 26px;
+    }
+    .modal-title { font-family: var(--font-head); font-size: 18px; font-weight: 700; }
+    .modal-close {
+      background: none; border: none; cursor: pointer; color: var(--text-3);
+      font-size: 20px; padding: 4px 8px; border-radius: 6px; transition: var(--transition);
+    }
+    .modal-close:hover { background: var(--card); color: var(--text-1); }
+
+    /* ── TOAST ──────────────────────────── */
+    #toast-container {
+      position: fixed; top: 82px; right: 24px;
+      z-index: 999; display: flex; flex-direction: column; gap: 8px;
+    }
+    .toast {
+      display: flex; align-items: flex-start; gap: 12px;
+      padding: 14px 18px; border-radius: var(--radius-sm);
+      background: var(--card); border: 1px solid var(--border);
+      box-shadow: var(--shadow); min-width: 300px; max-width: 380px;
+      font-size: 13px; line-height: 1.5;
+      animation: slide-in 0.28s ease forwards; transition: opacity 0.3s;
+    }
+    .toast.success { border-left: 3px solid var(--green); }
+    .toast.error   { border-left: 3px solid var(--red); }
+    .toast.info    { border-left: 3px solid var(--teal); }
+    .toast-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+    .toast-msg { color: var(--text-1); }
+    .toast-sub { color: var(--text-3); font-size: 12px; margin-top: 2px; }
+    @keyframes slide-in {
+      from { opacity: 0; transform: translateX(20px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+
+    /* ── SPINNER ────────────────────────── */
+    .spinner {
+      width: 16px; height: 16px;
+      border: 2px solid rgba(0,212,170,0.2); border-top-color: var(--teal);
+      border-radius: 50%; animation: spin 0.7s linear infinite; flex-shrink: 0;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── SCROLLBAR ──────────────────────── */
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(0,212,170,0.18); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(0,212,170,0.35); }
+
+    /* ── RESPONSIVE ─────────────────────── */
+    @media (max-width: 960px) {
+      .book-layout, .admin-layout { grid-template-columns: 1fr; }
+      .stats-strip { grid-template-columns: 1fr 1fr; }
+      .header { padding: 0 20px; }
+      .tab-panel { padding: 28px 20px; }
+    }
+    @media (max-width: 640px) {
+      .form-row { grid-template-columns: 1fr; }
+      .stats-strip { grid-template-columns: 1fr 1fr; }
+      .tab-btn { padding: 8px 12px; }
+      .tab-btn .tab-label { display: none; }
+    }
+
+    /* ══ DASHBOARD ══════════════════════════════ */
+    .dash-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 4px;
+    }
+    .dash-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 24px 26px; transition: var(--transition);
+    }
+    .dash-card:hover { border-color: var(--border-hi); }
+    .dash-card.full { grid-column: 1 / -1; }
+    .dash-card-title {
+      font-family: var(--font-mono); font-size: 10.5px; color: var(--teal);
+      letter-spacing: 2px; text-transform: uppercase; margin-bottom: 18px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .chart-wrap { position: relative; height: 210px; }
+
+    /* Activity Feed */
+    .activity-feed { display: flex; flex-direction: column; max-height: 280px; overflow-y: auto; }
+    .act-item {
+      display: flex; align-items: flex-start; gap: 13px;
+      padding: 11px 0; border-bottom: 1px solid var(--border);
+      animation: fade-up 0.3s ease forwards;
+    }
+    .act-item:last-child { border-bottom: none; }
+    .act-dot {
+      width: 8px; height: 8px; border-radius: 50%; margin-top: 5px; flex-shrink: 0;
+    }
+    .act-dot.Pending  { background: var(--amber); box-shadow: 0 0 6px var(--amber); }
+    .act-dot.Approved { background: var(--green);  box-shadow: 0 0 6px var(--green); }
+    .act-dot.Rejected { background: var(--red);    box-shadow: 0 0 6px var(--red); }
+    .act-body { flex: 1; min-width: 0; }
+    .act-title { font-size: 13px; color: var(--text-1); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .act-sub   { font-size: 11px; color: var(--text-3); margin-top: 2px; }
+    .act-time  { font-family: var(--font-mono); font-size: 10px; color: var(--text-3); white-space: nowrap; margin-top: 4px; }
+
+    /* Quick Facts */
+    .qf-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 11px 14px;
+      background: rgba(0,212,170,0.04);
+      border: 1px solid rgba(0,212,170,0.08);
+      border-radius: var(--radius-sm); margin-bottom: 9px;
+    }
+    .qf-row:last-child { margin-bottom: 0; }
+    .qf-label { font-family: var(--font-mono); font-size: 10.5px; color: var(--text-3); letter-spacing: 0.8px; text-transform: uppercase; }
+    .qf-val   { font-family: var(--font-head); font-size: 15px; font-weight: 700; color: var(--teal); text-align: right; max-width: 160px; }
+
+    /* Venue table */
+    .venue-table { width: 100%; border-collapse: collapse; }
+    .venue-table th {
+      font-family: var(--font-mono); font-size: 9.5px; color: var(--text-3);
+      letter-spacing: 1.5px; text-transform: uppercase;
+      padding: 0 0 11px 0; text-align: left; border-bottom: 1px solid var(--border);
+    }
+    .venue-table td { padding: 9px 0; border-bottom: 1px solid rgba(0,212,170,0.05); font-size: 13px; }
+    .venue-table tr:last-child td { border-bottom: none; }
+    .vbar-track { flex: 1; height: 5px; background: rgba(255,255,255,0.06); border-radius: 3px; overflow: hidden; }
+    .vbar-fill { height: 100%; background: linear-gradient(to right, var(--teal), var(--indigo)); border-radius: 3px; transition: width 1s ease; }
+
+    @media (max-width: 1060px) {
+      .dash-grid { grid-template-columns: 1fr; }
+      .dash-card.full { grid-column: auto; }
+    }
+
+  </style>
+</head>
+<body>
+
+<div class="bg-grid"></div>
+<div class="bg-glow"></div>
+<div class="bg-glow-2"></div>
+<div id="toast-container"></div>
+
+<!-- ══════════ EDIT MODAL ══════════ -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">✎ Edit Booking</div>
+      <button class="modal-close" onclick="closeEditModal()">✕</button>
+    </div>
+    <input type="hidden" id="edit_id">
+    <div class="form-group">
+      <label class="form-label">Venue</label>
+      <div class="select-wrap"><select class="form-select" id="edit_venue"></select></div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Event Type</label>
+      <div class="select-wrap">
+        <select class="form-select" id="edit_event_type">
+          <option value="Academic">Academic</option>
+          <option value="Club">Club</option>
+          <option value="Sports">Sports</option>
+          <option value="Cultural">Cultural</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Event Name</label>
+      <input type="text" class="form-input" id="edit_event_name" placeholder="Event name">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Your Name</label>
+      <input type="text" class="form-input" id="edit_booker_name" placeholder="Your name">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Date</label>
+      <input type="date" class="form-input" id="edit_date">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Start Time</label>
+        <input type="time" class="form-input" id="edit_start_time">
+      </div>
+      <div class="form-group">
+        <label class="form-label">End Time</label>
+        <input type="time" class="form-input" id="edit_end_time">
+      </div>
+    </div>
+    <button class="btn btn-primary" onclick="submitEdit()" id="edit-submit-btn">
+      <span id="edit-btn-text">Update Booking</span>
+    </button>
+  </div>
+</div>
+
+<!-- ══════════ HEADER ══════════ -->
+<header class="header">
+  <div class="header-logo">
+    <div class="logo-icon">🏛️</div>
+    <div class="logo-text">Campus<span>Scheduler</span></div>
+  </div>
+
+  <nav class="tab-nav">
+    <button class="tab-btn" id="tab-btn-overview" onclick="switchTab('overview')">
+      <span class="tab-icon">📊</span>
+      <span class="tab-label">Overview</span>
+    </button>
+        <button class="tab-btn active" id="tab-btn-book" onclick="switchTab('book')">
+      <span class="tab-icon">📋</span>
+      <span class="tab-label">Book Venue</span>
+    </button>
+    <button class="tab-btn" id="tab-btn-browse" onclick="switchTab('browse')">
+      <span class="tab-icon">🗂️</span>
+      <span class="tab-label">All Bookings</span>
+    </button>
+    <button class="tab-btn" id="tab-btn-pending" onclick="switchTab('pending')">
+      <span class="tab-icon">🕐</span>
+      <span class="tab-label">Pending</span>
+      <span class="pending-badge" id="pending-badge">0</span>
+    </button>
+    <button class="tab-btn" id="tab-btn-admin" onclick="switchTab('admin')">
+      <span class="tab-icon">⚙️</span>
+      <span class="tab-label">Admin</span>
+    </button>
+  </nav>
+
+  <div class="admin-chip">
+    <div class="status-dot" id="adminDot"></div>
+    <span id="adminStatusText">User Mode</span>
+  </div>
+</header>
+
+<!-- ══════════ MAIN ══════════ -->
+<div class="main">
+
+  <!-- ─────────── TAB: OVERVIEW ─────────── -->
+  <div class="tab-panel" id="tab-overview">
+    <div class="section-label">Dashboard</div>
+    <div class="panel-title">Overview</div>
+    <div class="panel-sub">Campus venue booking summary, live activity feed, and utilization insights.</div>
+
+    <!-- Stats row -->
+    <div class="stats-strip" style="grid-template-columns:repeat(4,1fr); margin-bottom:24px;">
+      <div class="stat-card teal"><div class="stat-label">Total Bookings</div><div class="stat-value teal" id="ov-total">–</div><div style="font-family:var(--font-mono);font-size:10px;color:var(--text-3);margin-top:6px;" id="ov-sub">All time</div></div>
+      <div class="stat-card amber"><div class="stat-label">Pending</div><div class="stat-value amber" id="ov-pending">–</div><div style="font-family:var(--font-mono);font-size:10px;color:var(--text-3);margin-top:6px;">Awaiting approval</div></div>
+      <div class="stat-card green"><div class="stat-label">Approved</div><div class="stat-value green" id="ov-approved">–</div><div style="font-family:var(--font-mono);font-size:10px;color:var(--text-3);margin-top:6px;">Confirmed slots</div></div>
+      <div class="stat-card red"><div class="stat-label">Rejected</div><div class="stat-value red" id="ov-rejected">–</div><div style="font-family:var(--font-mono);font-size:10px;color:var(--text-3);margin-top:6px;">Declined requests</div></div>
+    </div>
+
+    <div class="dash-grid">
+      <!-- Status doughnut -->
+      <div class="dash-card">
+        <div class="dash-card-title">Status Breakdown</div>
+        <div class="chart-wrap"><canvas id="chart-status"></canvas></div>
+      </div>
+      <!-- Activity Feed -->
+      <div class="dash-card">
+        <div class="dash-card-title">Recent Activity <span style="font-size:10px;color:var(--text-3);">Latest 8</span></div>
+        <div class="activity-feed" id="activity-feed">
+          <div class="empty-state"><div class="empty-icon">📭</div><p>No bookings yet.</p></div>
+        </div>
+      </div>
+      <!-- Event type bar -->
+      <div class="dash-card">
+        <div class="dash-card-title">Bookings by Event Type</div>
+        <div class="chart-wrap"><canvas id="chart-type"></canvas></div>
+      </div>
+      <!-- Quick facts + top venues -->
+      <div class="dash-card">
+        <div class="dash-card-title" style="margin-bottom:14px;">Quick Facts</div>
+        <div class="qf-row"><span class="qf-label">Approval Rate</span><span class="qf-val" id="qf-rate">–</span></div>
+        <div class="qf-row"><span class="qf-label">Most Booked Venue</span><span class="qf-val" id="qf-venue" style="font-size:12px;">–</span></div>
+        <div class="qf-row"><span class="qf-label">Most Common Type</span><span class="qf-val" id="qf-type">–</span></div>
+        <div class="qf-row"><span class="qf-label">Pending Review</span><span class="qf-val" id="qf-pending" style="color:var(--amber);">–</span></div>
+        <div style="margin-top:22px;">
+          <div class="dash-card-title" style="margin-bottom:12px;">Top Venues</div>
+          <table class="venue-table">
+            <thead><tr><th>Venue</th><th>Bookings</th><th style="min-width:110px;">Usage</th></tr></thead>
+            <tbody id="venue-tbody"><tr><td colspan="3" style="color:var(--text-3);font-size:13px;padding-top:12px;">No data yet.</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ─────────── TAB: BOOK VENUE ─────────── -->
+  <div class="tab-panel active" id="tab-book">
+    <div class="section-label">New Request</div>
+    <div class="panel-title">Book a Venue</div>
+    <div class="panel-sub">Fill in the details and submit your request. An admin will review it before it's confirmed.</div>
+
+    <div class="book-layout">
+
+      <!-- FORM CARD -->
+      <div class="book-form-card">
+        <div class="form-group">
+          <label class="form-label">Venue</label>
+          <div class="select-wrap">
+            <select class="form-select" id="venueSelect" onchange="updateVenuePreview()">
+              <option value="">Select venue...</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Event Type</label>
+          <div class="select-wrap">
+            <select class="form-select" id="event_type">
+              <option value="Academic">Academic</option>
+              <option value="Club">Club</option>
+              <option value="Sports">Sports</option>
+              <option value="Cultural">Cultural</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Event Name</label>
+          <input type="text" class="form-input" id="event_name" placeholder="e.g. Data Structures Lecture">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Your Name</label>
+          <input type="text" class="form-input" id="booker_name" placeholder="e.g. Vineet Sharma">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Date</label>
+          <input type="date" class="form-input" id="date">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Start Time</label>
+            <input type="time" class="form-input" id="start_time">
+          </div>
+          <div class="form-group">
+            <label class="form-label">End Time</label>
+            <input type="time" class="form-input" id="end_time">
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="bookVenue()" id="book-btn">
+          <span id="book-btn-text">Submit Booking Request</span>
+        </button>
+      </div>
+
+      <!-- INFO COLUMN -->
+      <div class="book-info-col">
+        <div class="info-card" id="venue-info-card">
+          <div class="info-card-title">Selected Venue</div>
+          <div class="venue-preview" id="venue-preview">
+            <p class="info-card-body" style="color:var(--text-3);">Select a venue above to see its details.</p>
+          </div>
+        </div>
+        <div class="info-card">
+          <div class="info-card-title">How it Works</div>
+          <div class="info-card-body">
+            1. Fill out and submit your request.<br>
+            2. Booking is marked <strong style="color:var(--amber)">Pending</strong> immediately.<br>
+            3. Admin <strong style="color:var(--green)">Approves</strong> or <strong style="color:var(--red)">Rejects</strong> it.<br>
+            4. Approved bookings are locked confirmed slots.
+          </div>
+        </div>
+        <div class="info-card">
+          <div class="info-card-title">Booking Rules</div>
+          <div class="info-card-body">
+            • Bookings must be for <strong style="color:var(--text-1)">future dates</strong> only.<br>
+            • Overlapping approved slots are automatically blocked.<br>
+            • You can edit a <strong style="color:var(--amber)">Pending</strong> booking before it's reviewed.<br>
+            • Editing resets status to Pending for re-review.<br>
+            • Only admins can delete bookings.
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ─────────── TAB: ALL BOOKINGS ─────────── -->
+  <div class="tab-panel" id="tab-browse">
+    <div class="section-label">Overview</div>
+    <div class="panel-title">All Bookings</div>
+    <div class="panel-sub">Browse and filter all venue booking requests across campus.</div>
+
+    <div class="stats-strip">
+      <div class="stat-card teal">
+        <div class="stat-label">Total</div>
+        <div class="stat-value teal" id="stat-total">–</div>
+      </div>
+      <div class="stat-card amber">
+        <div class="stat-label">Pending</div>
+        <div class="stat-value amber" id="stat-pending">–</div>
+      </div>
+      <div class="stat-card green">
+        <div class="stat-label">Approved</div>
+        <div class="stat-value green" id="stat-approved">–</div>
+      </div>
+      <div class="stat-card red">
+        <div class="stat-label">Rejected</div>
+        <div class="stat-value red" id="stat-rejected">–</div>
+      </div>
+    </div>
+
+    <div class="filter-bar">
+      <button class="filter-chip active" data-filter="All"      onclick="setFilter('All')">All</button>
+      <button class="filter-chip"        data-filter="Pending"  onclick="setFilter('Pending')">Pending</button>
+      <button class="filter-chip"        data-filter="Approved" onclick="setFilter('Approved')">Approved</button>
+      <button class="filter-chip"        data-filter="Rejected" onclick="setFilter('Rejected')">Rejected</button>
+      <div class="filter-bar-end">
+        <input type="date" class="form-input" id="browse_filter_date"
+               style="width:160px;padding:6px 12px;font-size:12px;"
+               onchange="applyBrowseFilters()">
+        <button class="btn btn-ghost" style="padding:6px 14px;font-size:12px;" onclick="clearBrowseFilters()">✕ Clear</button>
+        <button class="btn btn-ghost" style="padding:6px 14px;font-size:12px;" onclick="loadBookings()">↺ Refresh</button>
+      </div>
+    </div>
+
+    <div class="bookings-list" id="bookingsList">
+      <div class="empty-state">
+        <div class="empty-icon">📋</div>
+        <p>Loading bookings…</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────── TAB: PENDING ─────────── -->
+  <div class="tab-panel" id="tab-pending">
+    <div class="section-label">Awaiting Review</div>
+    <div class="panel-title">Pending Requests</div>
+    <div class="panel-sub" id="pending-sub">Bookings that are waiting for admin approval.</div>
+
+    <div class="bookings-list" id="pendingList">
+      <div class="empty-state">
+        <div class="empty-icon">🕐</div>
+        <p>Loading…</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────── TAB: ADMIN ─────────── -->
+  <div class="tab-panel" id="tab-admin">
+    <div class="section-label">Administration</div>
+    <div class="panel-title">Admin Panel</div>
+
+    <!-- ── LOGIN SECTION ── -->
+    <div id="admin-login-section">
+      <div class="panel-sub">Authenticate to manage and approve venue booking requests.</div>
+      <div class="admin-layout">
+        <div class="admin-login-card">
+          <div class="admin-icon">🔐</div>
+          <div class="form-group">
+            <label class="form-label">Admin Password</label>
+            <input type="password" class="form-input" id="admin_password" placeholder="Enter password"
+              onkeydown="if(event.key==='Enter') adminLogin()">
+          </div>
+          <button class="btn btn-primary" onclick="adminLogin()" id="login-btn">
+            <span id="login-btn-text">Authenticate</span>
+          </button>
+        </div>
+        <div class="info-card">
+          <div class="info-card-title">Admin Capabilities</div>
+          <div class="info-card-body">
+            ✓ <strong style="color:var(--green)">Approve</strong> pending booking requests.<br>
+            ✗ <strong style="color:var(--red)">Reject</strong> requests with conflicts or violations.<br>
+            🗑 <strong style="color:var(--text-2)">Delete</strong> any booking from the system.<br>
+            📅 Filter bookings by date for daily management.<br>
+            🔒 Conflict-check runs automatically before approving.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── LOGGED-IN SECTION ── -->
+    <div id="admin-logged-section" style="display:none;">
+      <div class="panel-sub">Authenticated as admin. Approve, reject or delete booking requests below.</div>
+      <div class="admin-layout">
+
+        <!-- SIDEBAR -->
+        <div class="admin-sidebar">
+          <div class="admin-info-row">
+            <span class="lbl">Session</span>
+            <span class="val">🟢 Active</span>
+          </div>
+          <div class="admin-info-row">
+            <span class="lbl">Pending</span>
+            <span class="val" id="admin-pending-count" style="color:var(--amber);">–</span>
+          </div>
+          <div class="divider"></div>
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label">Filter by Date</label>
+            <input type="date" class="form-input" id="admin_filter_date" onchange="loadBookings()">
+          </div>
+          <button class="btn btn-ghost" style="width:100%;justify-content:center;margin-top:4px;" onclick="adminLogout()">
+            🚪 Sign Out
+          </button>
+        </div>
+
+        <!-- PENDING APPROVALS -->
+        <div>
+          <div class="section-label" style="margin-bottom:18px;">Pending Approvals</div>
+          <div class="bookings-list" id="adminPendingList">
+            <div class="empty-state">
+              <div class="empty-icon">✅</div>
+              <p>No pending requests.</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+</div><!-- /main -->
+
+<script>
+// ═══════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════
+const API = "http://127.0.0.1:5000";
+let adminToken    = localStorage.getItem("adminToken") || null;
+let currentTab    = "book";
+let currentFilter = "All";
+let allBookings   = [];
+let venuesData    = [];
+
+let chartStatus = null;
+let chartType   = null;
+
+
+// ═══════════════════════════════════════════
+// TOAST
+// ═══════════════════════════════════════════
+function toast(msg, type = "info", sub = "") {
+  const icons = { success: "✅", error: "❌", info: "ℹ️" };
+  const el = document.createElement("div");
+  el.className = `toast ${type}`;
+  el.innerHTML = `
+    <div class="toast-icon">${icons[type]||"ℹ️"}</div>
+    <div>
+      <div class="toast-msg">${msg}</div>
+      ${sub ? `<div class="toast-sub">${sub}</div>` : ""}
+    </div>`;
+  document.getElementById("toast-container").appendChild(el);
+  setTimeout(() => { el.style.opacity="0"; setTimeout(()=>el.remove(),300); }, 4200);
+}
+
+// ═══════════════════════════════════════════
+// TAB SWITCHING
+// ═══════════════════════════════════════════
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
+  document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+  document.getElementById(`tab-${tab}`).classList.add("active");
+  document.getElementById(`tab-btn-${tab}`).classList.add("active");
+  if (tab === "admin") checkAdminSession();
+  loadBookings();
+}
+
+// ═══════════════════════════════════════════
+// ADMIN AUTH
+// ═══════════════════════════════════════════
+async function checkAdminSession() {
+  if (!adminToken) { showLoginForm(); return; }
+  try {
+    const res  = await fetch(`${API}/admin/verify`, { headers:{"X-Admin-Token":adminToken} });
+    const data = await res.json();
+    if (data.valid) showAdminPanel();
+    else { adminToken=null; localStorage.removeItem("adminToken"); showLoginForm(); }
+  } catch { showLoginForm(); }
+}
+
+function showLoginForm() {
+  document.getElementById("admin-login-section").style.display  = "block";
+  document.getElementById("admin-logged-section").style.display = "none";
+  updateAdminDot(false);
+}
+
+function showAdminPanel() {
+  document.getElementById("admin-login-section").style.display  = "none";
+  document.getElementById("admin-logged-section").style.display = "block";
+  updateAdminDot(true);
+  loadBookings();
+}
+
+function updateAdminDot(on) {
+  document.getElementById("adminDot").className = "status-dot" + (on ? " online" : "");
+  document.getElementById("adminStatusText").textContent = on ? "Admin Mode" : "User Mode";
+}
+
+async function adminLogin() {
+  const password = document.getElementById("admin_password").value;
+  if (!password) { toast("Password is required.", "error"); return; }
+  const btn=document.getElementById("login-btn"), btnText=document.getElementById("login-btn-text");
+  btnText.innerHTML = '<div class="spinner"></div> Verifying…';
+  btn.disabled = true;
+  try {
+    const res  = await fetch(`${API}/admin/login`, {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ password })
+    });
+    const data = await res.json();
+    if (data.success) {
+      adminToken = data.token;
+      localStorage.setItem("adminToken", adminToken);
+      document.getElementById("admin_password").value = "";
+      toast("Admin access granted.", "success");
+      showAdminPanel();
+    } else { toast(data.message || "Incorrect password.", "error"); }
+  } catch { toast("Cannot connect to server.", "error"); }
+  finally { btnText.textContent = "Authenticate"; btn.disabled = false; }
+}
+
+async function adminLogout() {
+  if (!adminToken) { showLoginForm(); return; }
+  try {
+    await fetch(`${API}/admin/logout`, {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ token: adminToken })
+    });
+  } catch {}
+  adminToken = null;
+  localStorage.removeItem("adminToken");
+  toast("Signed out.", "info");
+  showLoginForm();
+  loadBookings();
+}
+
+// ═══════════════════════════════════════════
+// VENUES
+// ═══════════════════════════════════════════
+async function loadVenues() {
+  try {
+    const res = await fetch(`${API}/venues`);
+    venuesData = await res.json();
+
+    // Group by building for <optgroup>
+    const groups = {};
+    venuesData.forEach(v => {
+      (groups[v.building] = groups[v.building] || []).push(v);
+    });
+
+    [document.getElementById("venueSelect"), document.getElementById("edit_venue")].forEach(sel => {
+      sel.innerHTML = '<option value="">Select venue…</option>';
+      Object.entries(groups).forEach(([building, list]) => {
+        const og = document.createElement("optgroup");
+        og.label = building;
+        list.forEach(v => {
+          const opt = document.createElement("option");
+          opt.value = v.name;
+          opt.textContent = `${v.name} · ${v.floor}`;
+          og.appendChild(opt);
+        });
+        sel.appendChild(og);
+      });
+    });
+  } catch {
+    toast("Could not load venues. Is the server running?", "error");
+  }
+}
+
+function updateVenuePreview() {
+  const name  = document.getElementById("venueSelect").value;
+  const venue = venuesData.find(v => v.name === name);
+  const box   = document.getElementById("venue-preview");
+  if (!venue) {
+    box.innerHTML = `<p class="info-card-body" style="color:var(--text-3);">Select a venue above to see its details.</p>`;
+    return;
+  }
+  box.innerHTML = `
+    <div class="vp-row"><span class="icon">🏷️</span> ${escHtml(venue.name)}</div>
+    <div class="vp-row"><span class="icon">🏢</span> ${escHtml(venue.building)}</div>
+    <div class="vp-row"><span class="icon">📶</span> ${escHtml(venue.floor)}</div>`;
+}
+
+// ═══════════════════════════════════════════
+// LOAD BOOKINGS
+// ═══════════════════════════════════════════
+async function loadBookings() {
+  try {
+    let url = `${API}/bookings`;
+    const adminDate = document.getElementById("admin_filter_date")?.value;
+    if (adminDate && currentTab === "admin") url += `?date=${adminDate}`;
+
+    const res = await fetch(url);
+    allBookings = await res.json();
+
+    updateStats(allBookings);
+    applyBrowseFilters();
+    renderPendingTab();
+    if (adminToken) renderAdminPending();
+    renderDashboard(allBookings);
+  } catch {
+    ["bookingsList","pendingList","adminPendingList"].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><p>Could not load bookings.<br>Make sure the backend server is running.</p></div>`;
+    });
+  }
+}
+
+function updateStats(bookings) {
+  document.getElementById("stat-total").textContent    = bookings.length;
+  document.getElementById("stat-pending").textContent  = bookings.filter(b=>b.status==="Pending").length;
+  document.getElementById("stat-approved").textContent = bookings.filter(b=>b.status==="Approved").length;
+  document.getElementById("stat-rejected").textContent = bookings.filter(b=>b.status==="Rejected").length;
+
+  const n = bookings.filter(b=>b.status==="Pending").length;
+  const badge = document.getElementById("pending-badge");
+  badge.textContent = n;
+  badge.classList.toggle("show", n > 0);
+
+  const apc = document.getElementById("admin-pending-count");
+  if (apc) apc.textContent = n;
+}
+
+// ═══════════════════════════════════════════
+// FILTERS & RENDERERS
+// ═══════════════════════════════════════════
+function setFilter(f) {
+  currentFilter = f;
+  document.querySelectorAll(".filter-chip").forEach(c =>
+    c.classList.toggle("active", c.dataset.filter === f));
+  applyBrowseFilters();
+}
+
+function applyBrowseFilters() {
+  let list = currentFilter === "All" ? allBookings : allBookings.filter(b=>b.status===currentFilter);
+  const d = document.getElementById("browse_filter_date")?.value;
+  if (d) list = list.filter(b => b.date === d);
+  renderList(list, "bookingsList");
+}
+
+function clearBrowseFilters() {
+  document.getElementById("browse_filter_date").value = "";
+  setFilter("All");
+}
+
+function renderPendingTab() {
+  const list = allBookings.filter(b=>b.status==="Pending");
+  const sub  = document.getElementById("pending-sub");
+  if (sub) sub.textContent = list.length === 0
+    ? "No pending booking requests right now."
+    : `${list.length} booking${list.length>1?"s":""} awaiting admin approval.`;
+  renderList(list, "pendingList");
+}
+
+function renderAdminPending() {
+  const list = allBookings.filter(b=>b.status==="Pending");
+  renderList(list, "adminPendingList", true);
+}
+
+/**
+ * Render a booking list into a container.
+ * @param {Array}  list        - bookings to render
+ * @param {string} containerId - target element id
+ * @param {boolean} adminView  - show approve/reject/delete buttons
+ */
+function renderList(list, containerId, adminView = false) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+
+  if (!list.length) {
+    el.innerHTML = `<div class="empty-state">
+      <div class="empty-icon">${adminView ? "✅" : "📭"}</div>
+      <p>${adminView ? "No pending requests to review." : "No bookings found."}</p>
+    </div>`;
+    return;
+  }
+
+  el.innerHTML = list.map((b, i) => {
+    let actions = "";
+
+    if (adminToken && (adminView || containerId === "bookingsList")) {
+      // Admin: approve/reject pending + always delete
+      actions = `
+        ${b.status === "Pending" ? `
+          <button class="btn btn-sm btn-approve" onclick="approveBooking(${b.id})">✓ Approve</button>
+          <button class="btn btn-sm btn-reject"  onclick="rejectBooking(${b.id})">✗ Reject</button>
+        ` : ""}
+        <button class="btn btn-sm btn-delete" onclick="deleteBooking(${b.id})">🗑 Delete</button>`;
+    } else if (!adminToken) {
+      // Regular users: can only edit their own Pending bookings
+      if (b.status === "Pending") {
+        actions = `<button class="btn btn-sm btn-edit" onclick="openEditModal(${b.id})">✎ Edit</button>`;
+      }
+    }
+
+    return `
+      <div class="booking-card status-${b.status}" style="animation-delay:${i*0.04}s">
+        <div class="booking-top">
+          <div>
+            <div class="booking-title">${escHtml(b.event_name)}</div>
+            <div class="booking-venue">📍 ${escHtml(b.venue)}</div>
+          </div>
+          <div class="booking-top-right">
+            <span class="booking-id">#${b.id}</span>
+            <span class="status-badge badge-${b.status}">${b.status}</span>
+          </div>
+        </div>
+        <div class="booking-meta">
+          <div class="meta-item">📅 ${formatDate(b.date)}</div>
+          <div class="meta-item">🕐 ${b.start_time} – ${b.end_time}</div>
+          <div class="meta-item">🏷️ ${escHtml(b.event_type)}</div>
+          <div class="meta-item">👤 ${escHtml(b.booker_name || "Unknown")}</div>
+        </div>
+        ${actions ? `<div class="booking-actions">${actions}</div>` : ""}
+      </div>`;
+  }).join("");
+}
+
+
+// ═══════════════════════════════════════════
+// DASHBOARD RENDERER
+// ═══════════════════════════════════════════
+function renderDashboard(bks) {
+  const total    = bks.length;
+  const pending  = bks.filter(b=>b.status==="Pending").length;
+  const approved = bks.filter(b=>b.status==="Approved").length;
+  const rejected = bks.filter(b=>b.status==="Rejected").length;
+
+  // Stats
+  const set = (id,v) => { const e=document.getElementById(id); if(e) e.textContent=v; };
+  set("ov-total", total); set("ov-pending", pending);
+  set("ov-approved", approved); set("ov-rejected", rejected);
+  set("ov-sub", `${total} request${total!==1?"s":""} submitted`);
+
+  // Quick facts
+  const rate = total > 0 ? Math.round((approved/total)*100)+"%" : "—";
+  set("qf-rate", rate); set("qf-pending", pending);
+
+  const vCount = {};
+  bks.forEach(b => vCount[b.venue]=(vCount[b.venue]||0)+1);
+  const topV = Object.entries(vCount).sort((a,b)=>b[1]-a[1])[0];
+  set("qf-venue", topV ? topV[0] : "—");
+
+  const tCount = {};
+  bks.forEach(b => tCount[b.event_type]=(tCount[b.event_type]||0)+1);
+  const topT = Object.entries(tCount).sort((a,b)=>b[1]-a[1])[0];
+  set("qf-type", topT ? topT[0] : "—");
+
+  // Top venues table
+  const sorted = Object.entries(vCount).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  const maxC = sorted[0]?.[1] || 1;
+  const tbody = document.getElementById("venue-tbody");
+  if (tbody) {
+    if (!sorted.length) {
+      tbody.innerHTML = `<tr><td colspan="3" style="color:var(--text-3);font-size:13px;padding-top:12px;">No data yet.</td></tr>`;
+    } else {
+      tbody.innerHTML = sorted.map(([name,count]) => `
+        <tr>
+          <td style="color:var(--text-1);">${escHtml(name)}</td>
+          <td style="width:56px;"><span style="font-family:var(--font-mono);font-size:12px;color:var(--text-2);">${count}</span></td>
+          <td><div style="display:flex;align-items:center;gap:8px;"><div class="vbar-track"><div class="vbar-fill" style="width:${Math.round((count/maxC)*100)}%"></div></div></div></td>
+        </tr>`).join("");
+    }
+  }
+
+  // Activity feed
+  const recent = [...bks].reverse().slice(0, 8);
+  const feed = document.getElementById("activity-feed");
+  if (feed) {
+    if (!recent.length) {
+      feed.innerHTML = `<div class="empty-state" style="padding:30px 0;"><div class="empty-icon">📭</div><p>No bookings yet.</p></div>`;
+    } else {
+      feed.innerHTML = recent.map((b,i) => `
+        <div class="act-item" style="animation-delay:${i*0.05}s">
+          <div class="act-dot ${b.status}"></div>
+          <div class="act-body">
+            <div class="act-title">${escHtml(b.event_name)}</div>
+            <div class="act-sub">📍 ${escHtml(b.venue)} &nbsp;·&nbsp; 👤 ${escHtml(b.booker_name||"Unknown")}</div>
+          </div>
+          <div style="text-align:right;flex-shrink:0;">
+            <span class="status-badge badge-${b.status}" style="display:block;margin-bottom:3px;">${b.status}</span>
+            <div class="act-time">${formatDate(b.date)}</div>
+          </div>
+        </div>`).join("");
+    }
+  }
+
+  // Charts
+  renderCharts(pending, approved, rejected, tCount);
+}
+
+function renderCharts(pending, approved, rejected, tCount) {
+  if (typeof Chart === "undefined") return;
+  Chart.defaults.color = "#3f607a";
+  Chart.defaults.borderColor = "rgba(0,212,170,0.07)";
+  Chart.defaults.font.family = "'DM Mono', monospace";
+
+  // Status doughnut
+  const ctxS = document.getElementById("chart-status");
+  if (ctxS) {
+    if (chartStatus) { chartStatus.destroy(); chartStatus=null; }
+    chartStatus = new Chart(ctxS.getContext("2d"), {
+      type: "doughnut",
+      data: {
+        labels: ["Pending","Approved","Rejected"],
+        datasets: [{
+          data: [pending, approved, rejected],
+          backgroundColor: ["rgba(251,191,36,0.72)","rgba(52,211,153,0.72)","rgba(248,113,113,0.72)"],
+          borderColor:     ["rgba(251,191,36,0.9)","rgba(52,211,153,0.9)","rgba(248,113,113,0.9)"],
+          borderWidth: 1.5, hoverOffset: 6
+        }]
+      },
+      options: {
+        responsive:true, maintainAspectRatio:false, cutout:"65%",
+        plugins:{
+          legend:{position:"bottom",labels:{padding:16,font:{size:11},color:"#7fa3be"}},
+          tooltip:{callbacks:{label:c=>` ${c.label}: ${c.raw} booking${c.raw!==1?"s":""}`}}
+        }
+      }
+    });
+  }
+
+  // Event type bar
+  const ctxT = document.getElementById("chart-type");
+  if (ctxT) {
+    if (chartType) { chartType.destroy(); chartType=null; }
+    const labels = Object.keys(tCount);
+    const data   = Object.values(tCount);
+    chartType = new Chart(ctxT.getContext("2d"), {
+      type:"bar",
+      data:{
+        labels,
+        datasets:[{
+          label:"Bookings", data,
+          backgroundColor:"rgba(0,212,170,0.18)",
+          borderColor:"rgba(0,212,170,0.65)",
+          borderWidth:1.5, borderRadius:5,
+          hoverBackgroundColor:"rgba(0,212,170,0.32)"
+        }]
+      },
+      options:{
+        responsive:true, maintainAspectRatio:false,
+        scales:{
+          x:{grid:{display:false},ticks:{font:{size:11}}},
+          y:{beginAtZero:true,ticks:{stepSize:1,precision:0,font:{size:11}},grid:{color:"rgba(0,212,170,0.06)"}}
+        },
+        plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${c.raw} booking${c.raw!==1?"s":""}`}}}
+      }
+    });
+  }
+}
+
+// ═══════════════════════════════════════════
+// BOOK VENUE
+// ═══════════════════════════════════════════
+async function bookVenue() {
+  const data = {
+    venue:       document.getElementById("venueSelect").value,
+    event_type:  document.getElementById("event_type").value,
+    event_name:  document.getElementById("event_name").value.trim(),
+    booker_name: document.getElementById("booker_name").value.trim(),
+    date:        document.getElementById("date").value,
+    start_time:  document.getElementById("start_time").value,
+    end_time:    document.getElementById("end_time").value,
+  };
+
+  if (!data.venue)       { toast("Please select a venue.", "error"); return; }
+  if (!data.event_name)  { toast("Event name is required.", "error"); return; }
+  if (!data.booker_name) { toast("Your name is required.", "error"); return; }
+  if (!data.date)        { toast("Please select a date.", "error"); return; }
+  if (!data.start_time)  { toast("Start time is required.", "error"); return; }
+  if (!data.end_time)    { toast("End time is required.", "error"); return; }
+
+  const btn=document.getElementById("book-btn"), btnText=document.getElementById("book-btn-text");
+  btnText.innerHTML = '<div class="spinner"></div> Submitting…';
+  btn.disabled = true;
+
+  try {
+    const res    = await fetch(`${API}/book`, {
+      method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(data)
+    });
+    const result = await res.json();
+
+    if (res.ok && result.success) {
+      toast("Booking submitted!", "success", "Awaiting admin approval.");
+      ["event_name","booker_name","start_time","end_time","date"].forEach(id =>
+        document.getElementById(id).value = "");
+      document.getElementById("venueSelect").value = "";
+      updateVenuePreview();
+      loadBookings();
+    } else { toast(result.message || "Booking failed.", "error"); }
+  } catch { toast("Cannot connect to server.", "error"); }
+  finally { btnText.textContent = "Submit Booking Request"; btn.disabled = false; }
+}
+
+// ═══════════════════════════════════════════
+// EDIT MODAL
+// ═══════════════════════════════════════════
+function openEditModal(id) {
+  const b = allBookings.find(x => x.id === id);
+  if (!b) return;
+  document.getElementById("edit_id").value         = b.id;
+  document.getElementById("edit_venue").value       = b.venue;
+  document.getElementById("edit_event_type").value  = b.event_type;
+  document.getElementById("edit_event_name").value  = b.event_name;
+  document.getElementById("edit_booker_name").value = b.booker_name || "";
+  document.getElementById("edit_date").value        = b.date;
+  document.getElementById("edit_start_time").value  = b.start_time;
+  document.getElementById("edit_end_time").value    = b.end_time;
+  document.getElementById("editModal").classList.add("open");
+}
+
+function closeEditModal() {
+  document.getElementById("editModal").classList.remove("open");
+}
+
+async function submitEdit() {
+  const id   = document.getElementById("edit_id").value;
+  const data = {
+    venue:       document.getElementById("edit_venue").value,
+    event_type:  document.getElementById("edit_event_type").value,
+    event_name:  document.getElementById("edit_event_name").value.trim(),
+    booker_name: document.getElementById("edit_booker_name").value.trim(),
+    date:        document.getElementById("edit_date").value,
+    start_time:  document.getElementById("edit_start_time").value,
+    end_time:    document.getElementById("edit_end_time").value,
+  };
+  const btn=document.getElementById("edit-submit-btn"), btnText=document.getElementById("edit-btn-text");
+  btnText.innerHTML = '<div class="spinner"></div> Updating…';
+  btn.disabled = true;
+  try {
+    const res    = await fetch(`${API}/booking/${id}`, {
+      method:"PUT", headers:{"Content-Type":"application/json"}, body:JSON.stringify(data)
+    });
+    const result = await res.json();
+    if (result.success) {
+      toast("Booking updated.", "success", "Reset to Pending for re-approval.");
+      closeEditModal(); loadBookings();
+    } else { toast(result.message || "Update failed.", "error"); }
+  } catch { toast("Cannot connect to server.", "error"); }
+  finally { btnText.textContent = "Update Booking"; btn.disabled = false; }
+}
+
+// ═══════════════════════════════════════════
+// ADMIN ACTIONS
+// ═══════════════════════════════════════════
+async function approveBooking(id) {
+  if (!adminToken) { toast("Admin access required.", "error"); return; }
+  try {
+    const res    = await apiFetch(`${API}/approve/${id}`, "PUT");
+    const result = await res.json();
+    if (result.success) { toast("Booking approved! ✓", "success"); loadBookings(); }
+    else toast(result.message || "Could not approve.", "error");
+  } catch { toast("Cannot connect to server.", "error"); }
+}
+
+async function rejectBooking(id) {
+  if (!adminToken) { toast("Admin access required.", "error"); return; }
+  try {
+    const res    = await apiFetch(`${API}/reject/${id}`, "PUT");
+    const result = await res.json();
+    if (result.success) { toast("Booking rejected.", "info"); loadBookings(); }
+    else toast(result.message || "Could not reject.", "error");
+  } catch { toast("Cannot connect to server.", "error"); }
+}
+
+async function deleteBooking(id) {
+  // Security fix: only admins can delete
+  if (!adminToken) { toast("Admin access required to delete bookings.", "error"); return; }
+  if (!confirm("Permanently delete this booking?")) return;
+  try {
+    const res    = await apiFetch(`${API}/booking/${id}`, "DELETE");
+    const result = await res.json();
+    if (result.success) { toast("Booking deleted.", "info"); loadBookings(); }
+    else toast(result.message || "Could not delete.", "error");
+  } catch { toast("Cannot connect to server.", "error"); }
+}
+
+function apiFetch(url, method) {
+  return fetch(url, { method, headers: { "X-Admin-Token": adminToken || "" } });
+}
+
+// ═══════════════════════════════════════════
+// UTILITIES
+// ═══════════════════════════════════════════
+function escHtml(str) {
+  if (!str) return "";
+  return str.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+
+function formatDate(dateStr) {
+  if (!dateStr) return "–";
+  try {
+    // Append T12:00:00 to avoid timezone-offset date shifts
+    const d = new Date(dateStr + "T12:00:00");
+    if (isNaN(d.getTime())) return dateStr;
+    return d.toLocaleDateString("en-IN", { day:"numeric", month:"short", year:"numeric" });
+  } catch { return dateStr; }
+}
+
+// ═══════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════
+document.getElementById("editModal").addEventListener("click", function(e) {
+  if (e.target === this) closeEditModal();
+});
+
+// Set min date to today on all date inputs
+(function() {
+  const today = new Date().toISOString().split("T")[0];
+  ["date", "edit_date"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.setAttribute("min", today);
+  });
+})();
+
+loadVenues();
+loadBookings();
+setInterval(loadBookings, 30000);
+
+if (adminToken) {
+  checkAdminSession().then(() => { if (adminToken) updateAdminDot(true); });
+}
+</script>
+</body>
+</html>
