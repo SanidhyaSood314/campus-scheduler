@@ -109,8 +109,8 @@ http://127.0.0.1:5000
 
 ## 🌐 Live Demo
 
-* **Frontend (UI):** https://your-frontend-url.vercel.app
-* **Backend API:** https://your-backend-url.onrender.com
+* **Frontend (UI):** https://campus-scheduler-one.vercel.app
+* **Backend API:** https://campus-scheduler.onrender.com
 
 ---
 
